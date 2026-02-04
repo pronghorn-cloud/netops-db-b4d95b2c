@@ -112,6 +112,7 @@ export const updateSite = async (
 // @desc    Delete site
 // @route   DELETE /api/sites/:id
 // @access  Private (Admin only)
+
 export const deleteSite = async (
   req: AuthRequest,
   res: Response,
@@ -125,9 +126,8 @@ export const deleteSite = async (
       return;
     }
 
-
+    sendSuccess(res, 200, { message: 'Site deleted successfully' });
+  } catch (error) {
     next(error);
   }
-};
-
 };

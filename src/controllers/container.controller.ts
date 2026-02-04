@@ -116,7 +116,6 @@ export const updateContainer = async (
     next(error);
   }
 };
-
 // @desc    Delete container
 // @route   DELETE /api/containers/:id
 // @access  Private (Admin only)
@@ -133,8 +132,8 @@ export const deleteContainer = async (
       return;
     }
 
+    sendSuccess(res, 200, { message: 'Container deleted successfully' });
+  } catch (error) {
+    next(error);
   }
-};
-
-
 };

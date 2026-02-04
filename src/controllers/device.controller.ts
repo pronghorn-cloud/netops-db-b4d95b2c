@@ -148,9 +148,11 @@ export const updateDevice = async (
     next(error);
   }
 };
-
 // @desc    Delete device
-
+// @route   DELETE /api/devices/:id
+// @access  Private (Admin only)
+export const deleteDevice = async (
+  req: AuthRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -166,6 +168,4 @@ export const updateDevice = async (
   } catch (error) {
     next(error);
   }
-};
-
 };
