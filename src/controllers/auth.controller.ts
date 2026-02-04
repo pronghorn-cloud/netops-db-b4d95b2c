@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import User from '../models/User.model';
 import { jwtConfig } from '../config/jwt';
 import { sendSuccess, sendError } from '../utils/response.util';
@@ -7,9 +7,10 @@ import { AuthRequest } from '../middleware/auth.middleware';
 
 // Generate JWT token
 const generateToken = (userId: string): string => {
-  return jwt.sign({ id: userId }, jwtConfig.secret as string, {
-    expiresIn: jwtConfig.expiresIn as string
-  });
+  const options: SignOptions = {
+    expiresIn: jwtConfig.expiresIn as jwt.SignOptions['expiresIn']
+  };
+  return jwt.sign({ id: userId }, jwtConfig.secret, options);
 };
 
 // @desc    Register new user
