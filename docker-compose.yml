@@ -7,7 +7,7 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://database_database_tuwc_user:IStovI2jC8e3dbBYobyjHvmblRTB6zv7@dpg-d61477onputs73adknbg-a.oregon-postgres.render.com:5432/database_database_tuwc?sslmode=require
+      - DATABASE_URL=localhost:5432
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRE=7d
     restart: unless-stopped
