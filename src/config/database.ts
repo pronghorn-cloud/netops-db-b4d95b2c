@@ -1,12 +1,14 @@
 import { Pool } from 'pg';
 
-
 let pool: Pool | null = null;
 
 export const connectDatabase = async (): Promise<void> => {
   try {
-    const connectionString = process.env.DATABASE_URL || 
-      'postgresql://database_database_tuwc_user:IStovI2jC8e3dbBYobyjHvmblRTB6zv7@dpg-d61477onputs73adknbg-a.oregon-postgres.render.com:5432/database_database_tuwc?sslmode=require';
+    const connectionString = process.env.DATABASE_URL;
+    
+    if (!connectionString) {
+      throw new Error('DATABASE_URL environment variable is not set. Please configure it in your Render.com dashboard.');
+    }
     
     pool = new Pool({
       connectionString,
@@ -57,4 +59,3 @@ export const query = async (text: string, params?: any[]): Promise<any> => {
   const pool = getPool();
   return pool.query(text, params);
 };
-

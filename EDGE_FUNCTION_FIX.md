@@ -1,181 +1,172 @@
 # Edge Function Non-2xx Status Code - FIX APPLIED ✅
 
-## 🔧 Issue Diagnosed and Fixed
+## 🔧 Latest Fixes (Updated)
 
-### Root Cause
-
-Your Edge Function was returning a non-2xx status code on Render.com due to **TWO critical issues**:
-
-#### 1. ✅ FIXED: Syntax Error in `error.middleware.ts`
-
-**Problem**: The file had duplicate closing braces and duplicate lines at the end, causing TypeScript compilation to fail:
-
-```typescript
-// BROKEN CODE (lines 73-78):
-res.status(error.statusCode || 500).json(response);
-};
-
-  }  // ❌ Extra closing brace
-
-  res.status(error.statusCode || 500).json(response);  // ❌ Duplicate line
-};  // ❌ Extra closing brace
-```
-
-**Solution Applied**: Removed duplicate lines and corrected the file structure. The file now ends cleanly at line 79.
-
-**Status**: ✅ **FIXED** - File has been corrected and staged for commit
+This document explains the fixes applied to resolve the "Edge Function returned a non-2xx status code" error on Render.com.
 
 ---
 
-#### 2. ⚠️ ACTION REQUIRED: Render.com Build Command Misconfiguration
+## ✅ Fixes Applied in This Update
 
-**Problem**: Your Render.com Build Command is currently set to:
-```bash
-npm install
-```
+### 1. Server Startup Order Fixed (`src/index.ts`)
 
-But it **MUST** be:
-```bash
-npm install && npm run build
-```
+**Problem**: The server was trying to connect to the database BEFORE starting the HTTP listener. If the database connection failed, the app would crash with `process.exit(1)`, causing the Edge Function error.
 
-**Why This Matters**: 
-- Your app is written in TypeScript and needs to be compiled to JavaScript
-- Without `npm run build`, the `dist/` folder is never created
-- When Render tries to run `node dist/index.js`, the file doesn't exist
-- This causes the Edge Function to crash and return non-2xx status codes
+**Solution Applied**:
+- HTTP server now starts FIRST, immediately responding to health checks
+- Database connection happens AFTER the server is running
+- Database connection failures are logged but don't crash the app
+- Health check endpoint (`/health`) now shows database connection status
 
-**Status**: ⚠️ **YOU MUST UPDATE THIS ON RENDER.COM DASHBOARD**
+### 2. Removed Hardcoded Database Credentials (`src/config/database.ts`)
+
+**Problem**: The database config had hardcoded credentials as a fallback, which is:
+- A security vulnerability (credentials exposed in code)
+- A potential cause of connection failures if credentials are outdated
+
+**Solution Applied**:
+- Removed hardcoded database credentials
+- Now requires `DATABASE_URL` environment variable
+- Provides clear error message if `DATABASE_URL` is not set
+
+### 3. Updated `.env.example`
+
+**Problem**: The example file contained real credentials.
+
+**Solution Applied**:
+- Replaced with placeholder values
+- Added helpful comments
 
 ---
 
-## 📋 What You Need to Do NOW
+## 📋 What You Need to Do
 
 ### Step 1: Commit and Push These Fixes
 
 ```bash
-# Stage the fixed file
-git add src/middleware/error.middleware.ts
-
-# Commit the fix
-git commit -m "Fix: Remove duplicate lines causing syntax error in error.middleware.ts"
-
-# Push to your repository
+git add .
+git commit -m "Fix: Edge Function startup - server starts before DB connection"
 git push origin main
 ```
 
-### Step 2: Update Render.com Build Command
+### Step 2: Verify Render.com Configuration
 
-1. **Log in** to [Render.com Dashboard](https://dashboard.render.com/)
-2. **Navigate** to your web service (netops-db-b4d95b2c)
-3. **Click** the "Settings" tab
-4. **Scroll** to "Build & Deploy" section
-5. **Find** the "Build Command" field
-6. **CHANGE FROM**: `npm install`
-7. **CHANGE TO**: `npm install && npm run build`
-8. **Click** "Save Changes"
-9. **Click** "Manual Deploy" > "Deploy latest commit"
+Go to your Render.com Dashboard and verify these settings:
 
-### Step 3: Verify Deployment Success
+| Setting | Required Value |
+|---------|---------------|
+| **Build Command** | `npm install && npm run build` |
+| **Start Command** | `npm start` |
+| **Root Directory** | `.` or empty |
 
-Once deployed, your build logs **MUST** show:
+### Step 3: Verify Environment Variables
 
-```
-==> Running build command 'npm install && npm run build'...
+In Render.com Dashboard → Environment, ensure these are set:
 
-added 654 packages, and audited 655 packages in 37s
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | Your PostgreSQL connection string |
+| `JWT_SECRET` | A secure random string for JWT signing |
+| `NODE_ENV` | `production` |
+| `PORT` | `3000` (or leave unset, Render provides this) |
 
-> netops-api@1.0.0 build
-> tsc
+### Step 4: Deploy
 
-==> Uploading build...
-==> Build successful 🎉
-```
-
-**Key indicators of SUCCESS**:
-- ✅ Build command shows: `'npm install && npm run build'`
-- ✅ You see: `> netops-api@1.0.0 build`
-- ✅ You see: `> tsc` (TypeScript compiler running)
-- ✅ No TypeScript errors
-- ✅ App starts successfully
+1. Go to Render.com Dashboard
+2. Click "Manual Deploy" → "Deploy latest commit"
+3. Watch the build logs
 
 ---
 
-## 🧪 Post-Deployment Testing
+## 🧪 Testing After Deployment
 
 ### Test 1: Health Check
+
 ```bash
 curl https://your-app.onrender.com/health
 ```
 
-**Expected Response**:
+**If Database is Connected:**
 ```json
 {
   "status": "ok",
   "message": "NetOps API is running",
-  "timestamp": "2026-02-04T..."
+  "database": "connected",
+  "dbError": null,
+  "timestamp": "2026-02-04T...",
+  "environment": "production"
 }
 ```
 
-### Test 2: API Endpoint
-```bash
-curl https://your-app.onrender.com/api/sites
-```
-
-**Expected Response** (if not authenticated):
+**If Database is NOT Connected:**
 ```json
 {
-  "success": false,
-  "error": "No token provided" or "Invalid token"
+  "status": "degraded",
+  "message": "NetOps API is running",
+  "database": "disconnected",
+  "dbError": "DATABASE_URL environment variable is not set...",
+  "timestamp": "2026-02-04T...",
+  "environment": "production"
 }
 ```
+
+The health check will now tell you EXACTLY what's wrong!
+
+---
+
+## 🔍 Troubleshooting
+
+### If `/health` returns `dbError: "DATABASE_URL environment variable is not set"`
+
+1. Go to Render.com Dashboard → Your Service → Environment
+2. Add `DATABASE_URL` with your PostgreSQL connection string
+3. Redeploy
+
+### If `/health` returns a database connection error
+
+1. Verify your PostgreSQL database is running on Render.com
+2. Copy the correct connection string from your PostgreSQL dashboard
+3. Update the `DATABASE_URL` environment variable
+4. Redeploy
+
+### If Build Fails
+
+1. Check that Build Command is `npm install && npm run build`
+2. Look for TypeScript compilation errors in the build logs
+3. Run `npm run build` locally to test
+
+### If Still Getting Edge Function Error
+
+1. Check Render.com logs for error messages
+2. Verify all environment variables are set
+3. Try redeploying with "Clear build cache & deploy"
 
 ---
 
 ## 📊 Summary of Changes
 
-### Files Modified
-
-| File | Issue | Fix Applied |
-|------|-------|-------------|
-| `src/middleware/error.middleware.ts` | Syntax error: duplicate lines and closing braces | ✅ Removed duplicate lines, corrected file structure |
-
-### Configuration Required
-
-| Setting | Current Value | Required Value | Status |
-|---------|---------------|----------------|--------|
-| Render Build Command | `npm install` | `npm install && npm run build` | ⚠️ YOU MUST UPDATE |
-| Render Start Command | `npm start` | `npm start` | ✅ Correct |
-| Render Root Directory | `.` or empty | `.` or empty | ✅ Correct |
+| File | Change |
+|------|--------|
+| `src/index.ts` | Server starts before DB, non-blocking DB connection, improved health check |
+| `src/config/database.ts` | Removed hardcoded credentials, requires DATABASE_URL env var |
+| `.env.example` | Removed real credentials, uses placeholders |
 
 ---
 
-## 🔍 Technical Details
+## ✅ Checklist
 
-### What Was Wrong with `error.middleware.ts`
+- [ ] Committed and pushed the code changes
+- [ ] Verified Build Command is `npm install && npm run build`
+- [ ] Verified `DATABASE_URL` environment variable is set
+- [ ] Verified `JWT_SECRET` environment variable is set
+- [ ] Deployed to Render.com
+- [ ] Tested `/health` endpoint
+- [ ] Confirmed no Edge Function errors
 
-The file had malformed code at the end:
-- Lines 75-78 contained duplicate closing braces and a duplicate `res.status()` call
-- This caused a TypeScript syntax error
-- TypeScript compiler (`tsc`) would fail during build
-- No `dist/` folder would be created
-- Render.com would try to run `node dist/index.js` but the file wouldn't exist
-- Result: Edge Function crash with non-2xx status code
+---
 
-### Why Build Command Matters
+**Last Updated**: February 4, 2026
 
-Render.com deployment process:
-1. **Clone** your repository
-2. **Run** Build Command (currently: `npm install` ❌)
-3. **Upload** build artifacts
-4. **Run** Start Command (`npm start`)
-
-The problem:
-- `npm start` runs: `node dist/index.js`
-- But `dist/index.js` doesn't exist because `tsc` was never run
-- Without `npm run build` in the Build Command, TypeScript is never compiled
-
-### PostgreSQL Migration Status
 
 Your app has been successfully migrated from MongoDB to PostgreSQL:
 - ✅ All models use PostgreSQL
