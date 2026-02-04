@@ -47,13 +47,15 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Health check endpoint
-app.get('/health', (req: Request, res: Response) => {
+// Health check endpoint
+app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',
     message: 'NetOps API is running',
     timestamp: new Date().toISOString()
   });
 });
+
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -62,11 +64,13 @@ app.use('/api/containers', containerRoutes);
 app.use('/api/devices', deviceRoutes);
 
 // 404 handler
-app.use((req: Request, res: Response) => {
+// 404 handler
+app.use((_req: Request, res: Response) => {
   res.status(404).json({
     error: 'Route not found'
   });
 });
+
 
 // Error handler (must be last)
 app.use(errorHandler);
