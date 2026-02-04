@@ -3,4 +3,3 @@ export const jwtConfig = {
   expiresIn: process.env.JWT_EXPIRE || '7d'
 } as const;
 
-};
