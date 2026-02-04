@@ -82,7 +82,6 @@ export const authorize = (...roles: string[]) => {
       });
       return;
     }
-};
 
     next();
   };

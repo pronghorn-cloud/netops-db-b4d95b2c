@@ -153,8 +153,9 @@ class UserModel {
       query(
         'SELECT id, username, email, role, created_at as "createdAt", updated_at as "updatedAt" FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2',
         [limit, offset]
-export default new UserModel();
-
+      ),
+      query('SELECT COUNT(*) FROM users')
+    ]);
     
     return {
       users: usersResult.rows,
@@ -162,7 +163,5 @@ export default new UserModel();
     };
   }
 }
-
-export default new UserModel();
 
 export default new UserModel();
