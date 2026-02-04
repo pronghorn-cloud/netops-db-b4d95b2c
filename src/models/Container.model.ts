@@ -228,5 +228,3 @@ class ContainerModel {
 }
 
 export default new ContainerModel();
-
-export default mongoose.model<IContainer>('Container', ContainerSchema);

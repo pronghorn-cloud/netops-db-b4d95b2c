@@ -8,7 +8,6 @@ export interface AuthRequest extends Request {
   user?: IUser;
 }
 
-// Protect routes - verify JWT token
 export const protect = async (
   req: AuthRequest,
   res: Response,
@@ -61,6 +60,7 @@ export const protect = async (
       success: false,
       error: 'Authentication error'
     });
+    return;
   }
 };
 
@@ -82,25 +82,7 @@ export const authorize = (...roles: string[]) => {
       });
       return;
     }
-
-    next();
-  };
 };
-
-      res.status(401).json({
-        success: false,
-        error: 'Authentication required'
-      });
-      return;
-    }
-
-    if (!roles.includes(req.user.role)) {
-      res.status(403).json({
-        success: false,
-        error: `Insufficient permissions. ${roles.join(' or ')} access required.`
-      });
-      return;
-    }
 
     next();
   };

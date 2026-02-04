@@ -288,12 +288,3 @@ class DeviceModel {
 }
 
 export default new DeviceModel();
-
-
-// Index for searching and filtering
-DeviceSchema.index({ name: 'text', manufacturer: 'text', model: 'text' });
-DeviceSchema.index({ containerId: 1, status: 1 });
-DeviceSchema.index({ type: 1, status: 1 });
-DeviceSchema.index({ ipAddress: 1 });
-
-export default mongoose.model<IDevice>('Device', DeviceSchema);

@@ -52,9 +52,12 @@ const deviceValidation = [
     .matches(/^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$/i)
     .withMessage('Please provide a valid MAC address (format: XX:XX:XX:XX:XX:XX)'),
   body('containerId')
+  body('containerId')
     .notEmpty()
     .withMessage('Container ID is required')
-    .isMongoId()
+    .isUUID()
+    .withMessage('Invalid Container ID format'),
+
     .withMessage('Invalid Container ID format'),
   body('status')
     .optional()
@@ -102,9 +105,11 @@ const updateDeviceValidation = [
     .withMessage('Please provide a valid IP address'),
   body('macAddress')
     .optional()
-    .trim()
-    .matches(/^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$/i)
-    .withMessage('Please provide a valid MAC address (format: XX:XX:XX:XX:XX:XX)'),
+  body('containerId')
+    .optional()
+    .isUUID()
+    .withMessage('Invalid Container ID format'),
+
   body('containerId')
     .optional()
     .isMongoId()

@@ -181,14 +181,3 @@ class SiteModel {
 }
 
 export default new SiteModel();
-
-SiteSchema.virtual('containers', {
-  ref: 'Container',
-  localField: '_id',
-  foreignField: 'siteId'
-});
-
-// Index for searching
-SiteSchema.index({ name: 'text', location: 'text' });
-
-export default mongoose.model<ISite>('Site', SiteSchema);

@@ -131,31 +131,4 @@ export const deleteSite = async (
   }
 };
 
-
-    sendSuccess(res, 200, site);
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Delete site
-// @route   DELETE /api/sites/:id
-// @access  Private (Admin only)
-export const deleteSite = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const site = await Site.findByIdAndDelete(req.params.id);
-
-    if (!site) {
-      sendError(res, 404, 'Site not found');
-      return;
-    }
-
-    sendSuccess(res, 200, { message: 'Site deleted successfully' });
-  } catch (error) {
-    next(error);
-  }
 };

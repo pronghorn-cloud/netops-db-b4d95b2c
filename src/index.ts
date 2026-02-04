@@ -64,22 +64,19 @@ app.use('/api/devices', deviceRoutes);
 // 404 handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({
-    success: false,
+    error: 'Route not found'
+  });
+});
+
+// Error handler (must be last)
+app.use(errorHandler);
+
 // Database connection
 const connectDB = async (): Promise<void> => {
   try {
     await connectDatabase();
   } catch (error) {
     console.error('❌ Database connection error:', error);
-    process.exit(1);
-  }
-};
-
-    const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/netops';
-    await mongoose.connect(mongoURI);
-    console.log('✅ MongoDB connected successfully');
-  } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
     process.exit(1);
   }
 };
@@ -94,6 +91,19 @@ const startServer = async (): Promise<void> => {
     console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
   });
 };
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  await disconnectDatabase();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT signal received: closing HTTP server');
+  await disconnectDatabase();
+  process.exit(0);
+});
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err: Error) => {

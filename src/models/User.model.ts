@@ -166,9 +166,4 @@ class UserModel {
 
 export default new UserModel();
 
-  const obj = this.toObject();
-  delete obj.password;
-  return obj;
-};
-
-export default mongoose.model<IUser>('User', UserSchema);
+export default new UserModel();

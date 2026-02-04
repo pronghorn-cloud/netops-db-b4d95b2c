@@ -139,32 +139,5 @@ export const deleteContainer = async (
   }
 };
 
-    }
 
-    sendSuccess(res, 200, container);
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Delete container
-// @route   DELETE /api/containers/:id
-// @access  Private (Admin only)
-export const deleteContainer = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const container = await Container.findByIdAndDelete(req.params.id);
-
-    if (!container) {
-      sendError(res, 404, 'Container not found');
-      return;
-    }
-
-    sendSuccess(res, 200, { message: 'Container deleted successfully' });
-  } catch (error) {
-    next(error);
-  }
 };
