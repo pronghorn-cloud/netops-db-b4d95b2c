@@ -44,7 +44,7 @@ class UserModel {
       : 'id, username, email, role, created_at as "createdAt", updated_at as "updatedAt"';
     
     const result = await query(
-      `SELECT ${fields} FROM users WHERE id = $1`,
+      `SELECT ${fields} FROM netops.users WHERE id = $1`,
       [id]
     );
     
@@ -58,7 +58,7 @@ class UserModel {
       : 'id, username, email, role, created_at as "createdAt", updated_at as "updatedAt"';
     
     const result = await query(
-      `SELECT ${fields} FROM users WHERE email = $1`,
+      `SELECT ${fields} FROM netops.users WHERE email = $1`,
       [email]
     );
     
@@ -68,7 +68,7 @@ class UserModel {
   // Find user by username
   async findByUsername(username: string): Promise<IUser | null> {
     const result = await query(
-      'SELECT id, username, email, role, created_at as "createdAt", updated_at as "updatedAt" FROM users WHERE username = $1',
+      'SELECT id, username, email, role, created_at as "createdAt", updated_at as "updatedAt" FROM netops.users WHERE username = $1',
       [username]
     );
     
@@ -78,7 +78,7 @@ class UserModel {
   // Find user by email or username
   async findByEmailOrUsername(email: string, username: string): Promise<IUser | null> {
     const result = await query(
-      'SELECT id, username, email, role, created_at as "createdAt", updated_at as "updatedAt" FROM users WHERE email = $1 OR username = $2',
+      'SELECT id, username, email, role, created_at as "createdAt", updated_at as "updatedAt" FROM netops.users WHERE email = $1 OR username = $2',
       [email, username]
     );
     
@@ -91,7 +91,7 @@ class UserModel {
     const hashedPassword = await this.hashPassword(userData.password);
     
     const result = await query(
-      `INSERT INTO users (username, email, password, role) 
+      `INSERT INTO netops.users (username, email, password, role) 
        VALUES ($1, $2, $3, $4) 
        RETURNING id, username, email, role, created_at as "createdAt", updated_at as "updatedAt"`,
       [userData.username, userData.email, hashedPassword, userData.role || 'user']
@@ -130,7 +130,7 @@ class UserModel {
 
     values.push(id);
     const result = await query(
-      `UPDATE users SET ${updates.join(', ')} 
+      `UPDATE netops.users SET ${updates.join(', ')} 
        WHERE id = $${paramCount} 
        RETURNING id, username, email, role, created_at as "createdAt", updated_at as "updatedAt"`,
       values
@@ -141,7 +141,7 @@ class UserModel {
 
   // Delete user
   async delete(id: string): Promise<boolean> {
-    const result = await query('DELETE FROM users WHERE id = $1', [id]);
+    const result = await query('DELETE FROM netops.users WHERE id = $1', [id]);
     return (result.rowCount ?? 0) > 0;
   }
 
@@ -151,10 +151,10 @@ class UserModel {
     
     const [usersResult, countResult] = await Promise.all([
       query(
-        'SELECT id, username, email, role, created_at as "createdAt", updated_at as "updatedAt" FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+        'SELECT id, username, email, role, created_at as "createdAt", updated_at as "updatedAt" FROM netops.users ORDER BY created_at DESC LIMIT $1 OFFSET $2',
         [limit, offset]
       ),
-      query('SELECT COUNT(*) FROM users')
+      query('SELECT COUNT(*) FROM netops.users')
     ]);
     
     return {
@@ -163,5 +163,7 @@ class UserModel {
     };
   }
 }
+
+export default new UserModel();
 
 export default new UserModel();

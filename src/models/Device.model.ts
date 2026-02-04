@@ -54,7 +54,7 @@ class DeviceModel {
   // Find device by ID
   async findById(id: string): Promise<IDevice | null> {
     const result = await query(
-      'SELECT id, name, type, manufacturer, model, serial_number as "serialNumber", ip_address as "ipAddress", mac_address as "macAddress", container_id as "containerId", status, notes, created_at as "createdAt", updated_at as "updatedAt" FROM devices WHERE id = $1',
+      'SELECT id, name, type, manufacturer, model, serial_number as "serialNumber", ip_address as "ipAddress", mac_address as "macAddress", container_id as "containerId", status, notes, created_at as "createdAt", updated_at as "updatedAt" FROM netops.devices WHERE id = $1',
       [id]
     );
     
@@ -74,8 +74,8 @@ class DeviceModel {
           'type', c.type,
           'location', c.location
         ) as container
-       FROM devices d
-       LEFT JOIN containers c ON d.container_id = c.id
+       FROM netops.devices d
+       LEFT JOIN netops.containers c ON d.container_id = c.id
        WHERE d.id = $1`,
       [id]
     );
@@ -102,9 +102,9 @@ class DeviceModel {
             'location', s.location
           )
         ) as container
-       FROM devices d
-       LEFT JOIN containers c ON d.container_id = c.id
-       LEFT JOIN sites s ON c.site_id = s.id
+       FROM netops.devices d
+       LEFT JOIN netops.containers c ON d.container_id = c.id
+       LEFT JOIN netops.sites s ON c.site_id = s.id
        WHERE d.id = $1`,
       [id]
     );
@@ -156,15 +156,15 @@ class DeviceModel {
             'type', c.type,
             'location', c.location
           ) as container
-         FROM devices d
-         LEFT JOIN containers c ON d.container_id = c.id
+         FROM netops.devices d
+         LEFT JOIN netops.containers c ON d.container_id = c.id
          ${whereClause}
          ORDER BY d.created_at DESC 
          LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
         [...queryValues, limit, offset]
       ),
       query(
-        `SELECT COUNT(*) as count FROM devices d ${whereClause}`,
+        `SELECT COUNT(*) as count FROM netops.devices d ${whereClause}`,
         queryValues
       )
     ]);
@@ -178,7 +178,7 @@ class DeviceModel {
   // Create new device
   async create(deviceData: IDeviceCreate): Promise<IDevice> {
     const result = await query(
-      `INSERT INTO devices (name, type, manufacturer, model, serial_number, ip_address, mac_address, container_id, status, notes) 
+      `INSERT INTO netops.devices (name, type, manufacturer, model, serial_number, ip_address, mac_address, container_id, status, notes) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
        RETURNING id, name, type, manufacturer, model, serial_number as "serialNumber", ip_address as "ipAddress", mac_address as "macAddress", container_id as "containerId", status, notes, created_at as "createdAt", updated_at as "updatedAt"`,
       [
@@ -251,7 +251,7 @@ class DeviceModel {
 
     values.push(id);
     const result = await query(
-      `UPDATE devices SET ${updates.join(', ')} 
+      `UPDATE netops.devices SET ${updates.join(', ')} 
        WHERE id = $${paramCount} 
        RETURNING id, name, type, manufacturer, model, serial_number as "serialNumber", ip_address as "ipAddress", mac_address as "macAddress", container_id as "containerId", status, notes, created_at as "createdAt", updated_at as "updatedAt"`,
       values
@@ -262,14 +262,14 @@ class DeviceModel {
 
   // Delete device
   async delete(id: string): Promise<boolean> {
-    const result = await query('DELETE FROM devices WHERE id = $1', [id]);
+    const result = await query('DELETE FROM netops.devices WHERE id = $1', [id]);
     return (result.rowCount ?? 0) > 0;
   }
 
   // Find device by serial number
   async findBySerialNumber(serialNumber: string): Promise<IDevice | null> {
     const result = await query(
-      'SELECT id, name, type, manufacturer, model, serial_number as "serialNumber", ip_address as "ipAddress", mac_address as "macAddress", container_id as "containerId", status, notes, created_at as "createdAt", updated_at as "updatedAt" FROM devices WHERE serial_number = $1',
+      'SELECT id, name, type, manufacturer, model, serial_number as "serialNumber", ip_address as "ipAddress", mac_address as "macAddress", container_id as "containerId", status, notes, created_at as "createdAt", updated_at as "updatedAt" FROM netops.devices WHERE serial_number = $1',
       [serialNumber]
     );
     
@@ -279,7 +279,7 @@ class DeviceModel {
   // Find device by IP address
   async findByIpAddress(ipAddress: string): Promise<IDevice | null> {
     const result = await query(
-      'SELECT id, name, type, manufacturer, model, serial_number as "serialNumber", ip_address as "ipAddress", mac_address as "macAddress", container_id as "containerId", status, notes, created_at as "createdAt", updated_at as "updatedAt" FROM devices WHERE ip_address = $1',
+      'SELECT id, name, type, manufacturer, model, serial_number as "serialNumber", ip_address as "ipAddress", mac_address as "macAddress", container_id as "containerId", status, notes, created_at as "createdAt", updated_at as "updatedAt" FROM netops.devices WHERE ip_address = $1',
       [ipAddress]
     );
     

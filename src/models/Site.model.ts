@@ -38,7 +38,7 @@ class SiteModel {
   // Find site by ID
   async findById(id: string): Promise<ISite | null> {
     const result = await query(
-      'SELECT id, name, location, address, description, status, created_at as "createdAt", updated_at as "updatedAt" FROM sites WHERE id = $1',
+      'SELECT id, name, location, address, description, status, created_at as "createdAt", updated_at as "updatedAt" FROM netops.sites WHERE id = $1',
       [id]
     );
     
@@ -73,13 +73,13 @@ class SiteModel {
     const [sitesResult, countResult] = await Promise.all([
       query(
         `SELECT id, name, location, address, description, status, created_at as "createdAt", updated_at as "updatedAt" 
-         FROM sites ${whereClause} 
+         FROM netops.sites ${whereClause} 
          ORDER BY created_at DESC 
          LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
         [...queryValues, limit, offset]
       ),
       query(
-        `SELECT COUNT(*) as count FROM sites ${whereClause}`,
+        `SELECT COUNT(*) as count FROM netops.sites ${whereClause}`,
         queryValues
       )
     ]);
@@ -93,7 +93,7 @@ class SiteModel {
   // Create new site
   async create(siteData: ISiteCreate): Promise<ISite> {
     const result = await query(
-      `INSERT INTO sites (name, location, address, description, status) 
+      `INSERT INTO netops.sites (name, location, address, description, status) 
        VALUES ($1, $2, $3, $4, $5) 
        RETURNING id, name, location, address, description, status, created_at as "createdAt", updated_at as "updatedAt"`,
       [
@@ -141,7 +141,7 @@ class SiteModel {
 
     values.push(id);
     const result = await query(
-      `UPDATE sites SET ${updates.join(', ')} 
+      `UPDATE netops.sites SET ${updates.join(', ')} 
        WHERE id = $${paramCount} 
        RETURNING id, name, location, address, description, status, created_at as "createdAt", updated_at as "updatedAt"`,
       values
@@ -152,14 +152,14 @@ class SiteModel {
 
   // Delete site
   async delete(id: string): Promise<boolean> {
-    const result = await query('DELETE FROM sites WHERE id = $1', [id]);
+    const result = await query('DELETE FROM netops.sites WHERE id = $1', [id]);
     return (result.rowCount ?? 0) > 0;
   }
 
   // Get site with its containers
   async findByIdWithContainers(id: string): Promise<any | null> {
     const siteResult = await query(
-      'SELECT id, name, location, address, description, status, created_at as "createdAt", updated_at as "updatedAt" FROM sites WHERE id = $1',
+      'SELECT id, name, location, address, description, status, created_at as "createdAt", updated_at as "updatedAt" FROM netops.sites WHERE id = $1',
       [id]
     );
     
@@ -168,7 +168,7 @@ class SiteModel {
     }
 
     const containersResult = await query(
-      'SELECT id, name, type, site_id as "siteId", location, capacity, status, created_at as "createdAt", updated_at as "updatedAt" FROM containers WHERE site_id = $1',
+      'SELECT id, name, type, site_id as "siteId", location, capacity, status, created_at as "createdAt", updated_at as "updatedAt" FROM netops.containers WHERE site_id = $1',
       [id]
     );
 

@@ -41,7 +41,7 @@ class ContainerModel {
   // Find container by ID
   async findById(id: string): Promise<IContainer | null> {
     const result = await query(
-      'SELECT id, name, type, site_id as "siteId", location, capacity, status, created_at as "createdAt", updated_at as "updatedAt" FROM containers WHERE id = $1',
+      'SELECT id, name, type, site_id as "siteId", location, capacity, status, created_at as "createdAt", updated_at as "updatedAt" FROM netops.containers WHERE id = $1',
       [id]
     );
     
@@ -59,8 +59,8 @@ class ContainerModel {
           'name', s.name,
           'location', s.location
         ) as site
-       FROM containers c
-       LEFT JOIN sites s ON c.site_id = s.id
+       FROM netops.containers c
+       LEFT JOIN netops.sites s ON c.site_id = s.id
        WHERE c.id = $1`,
       [id]
     );
@@ -79,8 +79,8 @@ class ContainerModel {
           'name', s.name,
           'location', s.location
         ) as site
-       FROM containers c
-       LEFT JOIN sites s ON c.site_id = s.id
+       FROM netops.containers c
+       LEFT JOIN netops.sites s ON c.site_id = s.id
        WHERE c.id = $1`,
       [id]
     );
@@ -90,7 +90,7 @@ class ContainerModel {
     }
 
     const devicesResult = await query(
-      'SELECT id, name, type, manufacturer, model, serial_number as "serialNumber", ip_address as "ipAddress", mac_address as "macAddress", container_id as "containerId", status, notes, created_at as "createdAt", updated_at as "updatedAt" FROM devices WHERE container_id = $1',
+      'SELECT id, name, type, manufacturer, model, serial_number as "serialNumber", ip_address as "ipAddress", mac_address as "macAddress", container_id as "containerId", status, notes, created_at as "createdAt", updated_at as "updatedAt" FROM netops.devices WHERE container_id = $1',
       [id]
     );
 
@@ -136,15 +136,15 @@ class ContainerModel {
             'name', s.name,
             'location', s.location
           ) as site
-         FROM containers c
-         LEFT JOIN sites s ON c.site_id = s.id
+         FROM netops.containers c
+         LEFT JOIN netops.sites s ON c.site_id = s.id
          ${whereClause}
          ORDER BY c.created_at DESC 
          LIMIT $${paramCount} OFFSET $${paramCount + 1}`,
         [...queryValues, limit, offset]
       ),
       query(
-        `SELECT COUNT(*) as count FROM containers c ${whereClause}`,
+        `SELECT COUNT(*) as count FROM netops.containers c ${whereClause}`,
         queryValues
       )
     ]);
@@ -158,7 +158,7 @@ class ContainerModel {
   // Create new container
   async create(containerData: IContainerCreate): Promise<IContainer> {
     const result = await query(
-      `INSERT INTO containers (name, type, site_id, location, capacity, status) 
+      `INSERT INTO netops.containers (name, type, site_id, location, capacity, status) 
        VALUES ($1, $2, $3, $4, $5, $6) 
        RETURNING id, name, type, site_id as "siteId", location, capacity, status, created_at as "createdAt", updated_at as "updatedAt"`,
       [
@@ -211,7 +211,7 @@ class ContainerModel {
 
     values.push(id);
     const result = await query(
-      `UPDATE containers SET ${updates.join(', ')} 
+      `UPDATE netops.containers SET ${updates.join(', ')} 
        WHERE id = $${paramCount} 
        RETURNING id, name, type, site_id as "siteId", location, capacity, status, created_at as "createdAt", updated_at as "updatedAt"`,
       values
@@ -222,9 +222,10 @@ class ContainerModel {
 
   // Delete container
   async delete(id: string): Promise<boolean> {
-    const result = await query('DELETE FROM containers WHERE id = $1', [id]);
+    const result = await query('DELETE FROM netops.containers WHERE id = $1', [id]);
     return (result.rowCount ?? 0) > 0;
   }
 }
 
 export default new ContainerModel();
+
