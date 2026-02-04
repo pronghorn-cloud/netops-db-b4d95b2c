@@ -150,10 +150,7 @@ export const updateDevice = async (
 };
 
 // @desc    Delete device
-// @route   DELETE /api/devices/:id
-// @access  Private (Admin only)
-export const deleteDevice = async (
-  req: AuthRequest,
+
   res: Response,
   next: NextFunction
 ): Promise<void> => {

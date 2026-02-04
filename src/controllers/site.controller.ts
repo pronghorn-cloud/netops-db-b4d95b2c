@@ -125,8 +125,7 @@ export const deleteSite = async (
       return;
     }
 
-    sendSuccess(res, 200, { message: 'Site deleted successfully' });
-  } catch (error) {
+
     next(error);
   }
 };

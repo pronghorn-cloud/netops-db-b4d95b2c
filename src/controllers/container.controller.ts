@@ -133,9 +133,6 @@ export const deleteContainer = async (
       return;
     }
 
-    sendSuccess(res, 200, { message: 'Container deleted successfully' });
-  } catch (error) {
-    next(error);
   }
 };
 
