@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetOps Database Management System</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [v-cloak] {
+            display: none;
+        }
+
+        .fade-enter-active,
+        .fade-leave-active {
+            transition: opacity 0.3s ease;
+        }
+
+        .fade-enter-from,
+        .fade-leave-to {
+            opacity: 0;
+        }
+
+        .slide-enter-active,
+        .slide-leave-active {
+            transition: all 0.3s ease;
+        }
+
+        .slide-enter-from,
+        .slide-leave-to {
+            transform: translateY(-10px);
+            opacity: 0;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen transition-colors duration-300">
+    <div id="app" v-cloak>
+        <!-- Navigation Header -->
+        <nav class="bg-white dark:bg-gray-800 shadow-lg sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <i class="fas fa-network-wired text-blue-600 dark:text-blue-400 text-2xl mr-3"></i>
+                        <span class="text-xl font-bold text-gray-900 dark:text-white">NetOps Manager</span>
+                    </div>
+
+                    <!-- Breadcrumb -->
+                    <div class="flex items-center space-x-2 text-sm">
+                        <button @click="selectedSite = null" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                            <i class="fas fa-home mr-1"></i>Sites
+                        </button>
+                        <template v-if="selectedSite">
+                            <span class="text-gray-400">/</span>
+                            <span class="text-blue-600 dark:text-blue-400 font-medium">{{ selectedSite.building_code }}</span>
+                        </template>
+                    </div>
+
+                    <!-- Dark Mode Toggle -->
+                    <div class="flex items-center">
+                        <button @click="toggleDarkMode"
+                                class="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                            <i :class="darkMode ? 'fas fa-sun text-yellow-400' : 'fas fa-moon'" class="text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+            <!-- ==================== SEARCH VIEW ==================== -->
+            <div v-if="!selectedSite">
+                <!-- Search Header -->
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Site Search</h1>
+                    <p class="text-gray-600 dark:text-gray-400">Search and manage network sites across all locations</p>
+                </div>
+
+                <!-- Search Filters -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search All Fields</label>
+                            <div class="relative">
+                                <input v-model="searchQuery" type="text" placeholder="Search sites..."
+                                       class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City</label>
+                            <select v-model="filterCity" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                <option value="">All Cities</option>
+                                <option v-for="city in uniqueCities" :key="city" :value="city">{{ city }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Region</label>
+                            <select v-model="filterRegion" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                <option value="">All Regions</option>
+                                <option v-for="region in uniqueRegions" :key="region" :value="region">{{ region }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Size</label>
+                            <select v-model="filterSize" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                <option value="">All Sizes</option>
+                                <option v-for="size in uniqueSizes" :key="size" :value="size">{{ size }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">
+                            Showing {{ filteredSites.length }} of {{ sites.length }} sites
+                        </span>
+                        <button @click="clearFilters" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                            <i class="fas fa-times mr-1"></i>Clear Filters
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sites Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div v-for="site in filteredSites" :key="site.siteid" @click="selectSite(site)"
+                        class="bg-white dark:bg-gray-800 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1 overflow-hidden">
+                        <div class="p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{
+                                        site.building_code }}</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ site.building }}</p>
+                                </div>
+                                <span :class="getSizeClass(site.size)" class="px-2 py-1 text-xs font-medium rounded-full">
+                                    {{ site.size }}
+                                </span>
+                            </div>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                    <i class="fas fa-map-marker-alt w-5 text-gray-400"></i>
+                                    <span>{{ site.address }}, {{ site.city }}</span>
+                                </div>
+                                <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                    <i class="fas fa-globe w-5 text-gray-400"></i>
+                                    <span>{{ site.region }}</span>
+                                </div>
+                                <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                    <i class="fas fa-wifi w-5 text-gray-400"></i>
+                                    <span>{{ site.wsp || 'N/A' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div
+                            class="bg-gray-50 dark:bg-gray-700 px-6 py-3 flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                            <span><i class="fas fa-server mr-1"></i>{{ getHardwareCount(site.siteid) }} Hardware</span>
+                            <span><i class="fas fa-network-wired mr-1"></i>{{ getCircuitCount(site.building_code) }} Circuits</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div v-if="filteredSites.length === 0" class="text-center py-16">
+                    <i class="fas fa-search text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                    <h3 class="text-xl font-medium text-gray-900 dark:text-white mb-2">No sites found</h3>
+                    <p class="text-gray-600 dark:text-gray-400">Try adjusting your search filters</p>
+                </div>
+            </div>
+
+            <!-- ==================== SITE DETAIL VIEW ==================== -->
+            <div v-else>
+                <!-- Site Header -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+                    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+                        <div>
+                            <div class="flex items-center gap-3 mb-2">
+                                <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{
+                                    selectedSite.building_code }}</h1>
+                                <span :class="getSizeClass(selectedSite.size)" class="px-3 py-1 text-sm font-medium rounded-full">
+                                    {{ selectedSite.size }}
+                                </span>
+                            </div>
+                            <p class="text-lg text-gray-600 dark:text-gray-400">{{ selectedSite.building }}</p>
+                        </div>
+                        <button @click="selectedSite = null" class="flex items-center px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 transition-colors">
+                            <i class="fas fa-arrow-left mr-2"></i>Back to Search
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+                        <div class="flex items-start">
+                            <i class="fas fa-map-marker-alt text-blue-500 mt-1 mr-3"></i>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Address</p>
+                                <p class="text-gray-900 dark:text-white">{{ selectedSite.address }}</p>
+                                <p class="text-gray-600 dark:text-gray-300">{{ selectedSite.city }}, {{
+                                    selectedSite.postalcode }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-globe text-blue-500 mt-1 mr-3"></i>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Region</p>
+                                <p class="text-gray-900 dark:text-white">{{ selectedSite.region }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-wifi text-blue-500 mt-1 mr-3"></i>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">WSP / ISE Group</p>
+                                <p class="text-gray-900 dark:text-white">{{ selectedSite.wsp || 'N/A' }}</p>
+                                <p class="text-gray-600 dark:text-gray-300">{{ selectedSite.isegroup || 'N/A' }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <i class="fas fa-shield-alt text-blue-500 mt-1 mr-3"></i>
+                            <div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">DMVPN / AltWAN</p>
+                                <p class="text-gray-900 dark:text-white">{{ selectedSite.dmvpn || 'N/A' }}</p>
+                                <p class="text-gray-600 dark:text-gray-300">{{ selectedSite.altwan ? 'Yes' : 'No' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Collapsible Sections -->
+                <div class="space-y-4">
+
+                    <!-- ========== HARDWARE SECTION ========== -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                        <button @click="toggleSection('hardware')"
+                                class="w-full flex justify-between items-center p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <div class="flex items-center">
+                                <i class="fas fa-server text-blue-500 text-xl mr-3"></i>
+                                <div class="text-left">
+                                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Hardware</h2>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Network devices and equipment</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full text-sm font-medium mr-3">
+                                    {{ siteHardware.length }}
+                                </span>
+                                <i :class="sections.hardware ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-gray-400"></i>
+                            </div>
+                        </button>
+
+                        <div v-show="sections.hardware" class="border-t border-gray-200 dark:border-gray-700">
+                            <div class="p-6">
+                                <div
+                                    class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                                    <input v-model="hardwareSearch" type="text" placeholder="Search hardware..."
+                                           class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white w-full sm:w-64">
+                                    <button @click="openModal('hardware', 'create')"
+                                            class="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap">
+                                        <i class="fas fa-plus mr-2"></i>Add Hardware
+                                    </button>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div v-for="hw in filteredHardware" :key="hw.hardwareid"
+                                        class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                        <div
+                                            class="flex flex-col lg:flex-row lg:items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 gap-4">
+                                            <div class="flex items-start lg:items-center flex-1 gap-3">
+                                                <button @click="toggleHardware(hw.hardwareid)"
+                                                        class="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">
+                                                    <i :class="expandedHardware.includes(hw.hardwareid) ? 'fa-minus' : 'fa-plus'" class="fas text-sm"></i>
+                                                </button>
+                                                <div
+                                                    class="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                                    <div>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">Hostname</p>
+                                                        <p class="font-medium text-gray-900 dark:text-white text-sm">{{
+                                                            hw.hostname }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">IP Address
+                                                        </p>
+                                                        <p class="font-mono text-gray-900 dark:text-white text-sm">{{
+                                                            hw.ip_address }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">Model</p>
+                                                        <p class="text-gray-900 dark:text-white text-sm">{{ hw.make }}
+                                                            {{ hw.model }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                                                        <span :class="hw.isactive ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-400'"
+                                                              class="px-2 py-0.5 rounded-full text-xs font-medium">
+                                                            {{ hw.isactive ? 'Active' : 'Inactive' }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <button @click="openModal('hardware', 'edit', hw)"
+                                                        class="p-2 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                                        title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button @click="confirmDelete('hardware', hw)"
+                                                        class="p-2 text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                                                        title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Hardware Changes (Nested) -->
+                                        <div v-show="expandedHardware.includes(hw.hardwareid)"
+                                            class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                                            <div class="flex justify-between items-center mb-3">
+                                                <h4 class="font-medium text-gray-900 dark:text-white">
+                                                    <i class="fas fa-history text-blue-500 mr-2"></i>Changes History ({{
+                                                    getHardwareChanges(hw.hardwareid).length }})
+                                                </h4>
+                                                <button @click="openModal('change', 'create', null, hw.hardwareid)"
+                                                        class="text-sm px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                                    <i class="fas fa-plus mr-1"></i>Add Change
+                                                </button>
+                                            </div>
+
+                                            <div v-if="getHardwareChanges(hw.hardwareid).length > 0" class="space-y-2">
+                                                <div v-for="change in getHardwareChanges(hw.hardwareid)"
+                                                    :key="change.changeid"
+                                                    class="flex items-start p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                                    <div class="flex-1">
+                                                        <div class="flex items-center gap-3 mb-1 flex-wrap">
+                                                            <span class="text-sm font-mono text-blue-600 dark:text-blue-400">{{ change.ticketnumber }}</span>
+                                                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ formatDate(change.date) }}</span>
+                                                        </div>
+                                                        <p class="text-gray-900 dark:text-white text-sm">{{
+                                                            change.description }}</p>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">By: {{
+                                                            change.assignee }}</p>
+                                                    </div>
+                                                    <div class="flex gap-1 ml-2">
+                                                        <button @click="openModal('change', 'edit', change)" class="p-1 text-gray-400 hover:text-blue-600">
+                                                            <i class="fas fa-edit text-xs"></i>
+                                                        </button>
+                                                        <button @click="confirmDelete('change', change)" class="p-1 text-gray-400 hover:text-red-600">
+                                                            <i class="fas fa-trash text-xs"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <p v-else class="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+                                                No changes recorded</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p v-if="filteredHardware.length === 0"
+                                    class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                    No hardware found
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== CONTACTS SECTION ========== -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                        <button @click="toggleSection('contacts')"
+                                class="w-full flex justify-between items-center p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <div class="flex items-center">
+                                <i class="fas fa-users text-green-500 text-xl mr-3"></i>
+                                <div class="text-left">
+                                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Contacts</h2>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Ministry and site contacts</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 px-3 py-1 rounded-full text-sm font-medium mr-3">
+                                    {{ siteContacts.length }}
+                                </span>
+                                <i :class="sections.contacts ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-gray-400"></i>
+                            </div>
+                        </button>
+
+                        <div v-show="sections.contacts" class="border-t border-gray-200 dark:border-gray-700">
+                            <div class="p-6">
+                                <div class="flex justify-end mb-4">
+                                    <button @click="openModal('contact', 'create')"
+                                            class="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                        <i class="fas fa-plus mr-2"></i>Add Contact
+                                    </button>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div v-for="contact in siteContacts" :key="contact.mincontactid"
+                                        class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                        <div class="flex justify-between items-start mb-3">
+                                            <div class="flex items-center">
+                                                <div
+                                                    class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mr-3">
+                                                    <i class="fas fa-user text-green-600 dark:text-green-400"></i>
+                                                </div>
+                                                <div>
+                                                    <h4 class="font-medium text-gray-900 dark:text-white">{{
+                                                        contact.name }}</h4>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">{{
+                                                        getMinistryName(contact.ministryidlookup) }}</p>
+                                                </div>
+                                            </div>
+                                            <div class="flex gap-1">
+                                                <button @click="openModal('contact', 'edit', contact)" class="p-1 text-gray-400 hover:text-blue-600">
+                                                    <i class="fas fa-edit text-sm"></i>
+                                                </button>
+                                                <button @click="confirmDelete('contact', contact)" class="p-1 text-gray-400 hover:text-red-600">
+                                                    <i class="fas fa-trash text-sm"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="space-y-2 text-sm">
+                                            <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                                <i class="fas fa-envelope w-5 text-gray-400"></i>
+                                                <a :href="'mailto:' + contact.email"
+                                                    class="hover:text-blue-600 truncate">{{ contact.email }}</a>
+                                            </div>
+                                            <div class="flex items-center text-gray-600 dark:text-gray-300">
+                                                <i class="fas fa-phone w-5 text-gray-400"></i>
+                                                <span>{{ contact.phonenumber }}</span>
+                                            </div>
+                                        </div>
+                                        <p v-if="contact.contactnotes"
+                                            class="mt-3 text-sm text-gray-500 dark:text-gray-400 italic">
+                                            {{ contact.contactnotes }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <p v-if="siteContacts.length === 0"
+                                    class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                    No contacts found
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== SITE NOTES SECTION ========== -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                        <button @click="toggleSection('notes')"
+                                class="w-full flex justify-between items-center p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <div class="flex items-center">
+                                <i class="fas fa-sticky-note text-yellow-500 text-xl mr-3"></i>
+                                <div class="text-left">
+                                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Site Notes</h2>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Important notes and documentation</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-400 px-3 py-1 rounded-full text-sm font-medium mr-3">
+                                    {{ siteNotes.length }}
+                                </span>
+                                <i :class="sections.notes ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-gray-400"></i>
+                            </div>
+                        </button>
+
+                        <div v-show="sections.notes" class="border-t border-gray-200 dark:border-gray-700">
+                            <div class="p-6">
+                                <div class="flex justify-end mb-4">
+                                    <button @click="openModal('note', 'create')"
+                                            class="flex items-center px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors">
+                                        <i class="fas fa-plus mr-2"></i>Add Note
+                                    </button>
+                                </div>
+
+                                <div class="space-y-3">
+                                    <div v-for="note in siteNotes" :key="note.id"
+                                        class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                        <div class="flex justify-between items-start">
+                                            <div class="flex-1">
+                                                <p class="text-gray-900 dark:text-white">{{ note.note }}</p>
+                                                <div
+                                                    class="flex items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                                    <span><i class="fas fa-user mr-1"></i>{{ note.username }}</span>
+                                                    <span><i class="fas fa-calendar mr-1"></i>{{ formatDate(note.dateadded) }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="flex gap-2 ml-4">
+                                                <button @click="openModal('note', 'edit', note)" class="p-1 text-gray-400 hover:text-blue-600">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button @click="confirmDelete('note', note)" class="p-1 text-gray-400 hover:text-red-600">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p v-if="siteNotes.length === 0"
+                                    class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                    No notes found
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== NETWORKS SECTION ========== -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                        <button @click="toggleSection('networks')"
+                                class="w-full flex justify-between items-center p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <div class="flex items-center">
+                                <i class="fas fa-project-diagram text-purple-500 text-xl mr-3"></i>
+                                <div class="text-left">
+                                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Networks</h2>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Network subnets and VLANs</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 px-3 py-1 rounded-full text-sm font-medium mr-3">
+                                    {{ siteNetworks.length }}
+                                </span>
+                                <i :class="sections.networks ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-gray-400"></i>
+                            </div>
+                        </button>
+
+                        <div v-show="sections.networks" class="border-t border-gray-200 dark:border-gray-700">
+                            <div class="p-6 overflow-x-auto">
+                                <table class="w-full min-w-[600px]">
+                                    <thead>
+                                        <tr
+                                            class="text-left text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                                            <th class="pb-3 font-medium">Network</th>
+                                            <th class="pb-3 font-medium">VLAN</th>
+                                            <th class="pb-3 font-medium">Type</th>
+                                            <th class="pb-3 font-medium">Comment</th>
+                                            <th class="pb-3 font-medium">IVMS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="text-gray-900 dark:text-white">
+                                        <tr v-for="net in siteNetworks" :key="net.netid"
+                                            class="border-b border-gray-100 dark:border-gray-700">
+                                            <td class="py-3 font-mono text-sm">{{ net.netoc1 }}.{{ net.netoc2 }}.{{
+                                                net.netoc3 }}.{{ net.netoc4 }}/{{ net.mask_short }}</td>
+                                            <td class="py-3">{{ net.vlan_num || 'N/A' }}</td>
+                                            <td class="py-3">
+                                                <span class="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 rounded text-xs">
+                                                    {{ net.type }}
+                                                </span>
+                                            </td>
+                                            <td class="py-3 text-sm text-gray-600 dark:text-gray-400">{{ net.comment ||
+                                                '-' }}</td>
+                                            <td class="py-3">
+                                                <i :class="net.ivms_scan ? 'fas fa-check-circle text-green-500' : 'fas fa-times-circle text-gray-400'"></i>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <p v-if="siteNetworks.length === 0"
+                                    class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                    No networks found
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ========== SUPERNET CIRCUITS SECTION ========== -->
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+                        <button @click="toggleSection('circuits')"
+                                class="w-full flex justify-between items-center p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            <div class="flex items-center">
+                                <i class="fas fa-broadcast-tower text-orange-500 text-xl mr-3"></i>
+                                <div class="text-left">
+                                    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Supernet Circuits</h2>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">WAN circuits and VPN connections</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400 px-3 py-1 rounded-full text-sm font-medium mr-3">
+                                    {{ siteCircuits.length }}
+                                </span>
+                                <i :class="sections.circuits ? 'fa-chevron-up' : 'fa-chevron-down'" class="fas text-gray-400"></i>
+                            </div>
+                        </button>
+
+                        <div v-show="sections.circuits" class="border-t border-gray-200 dark:border-gray-700">
+                            <div class="p-6">
+                                <div class="space-y-3">
+                                    <div v-for="circuit in siteCircuits" :key="circuit.uid"
+                                        class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                        <div
+                                            class="flex flex-col lg:flex-row lg:items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 gap-4">
+                                            <div class="flex items-start lg:items-center flex-1 gap-3">
+                                                <button @click="toggleCircuit(circuit.uid)"
+                                                        class="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400 hover:bg-orange-200 dark:hover:bg-orange-800 transition-colors">
+                                                    <i :class="expandedCircuits.includes(circuit.uid) ? 'fa-minus' : 'fa-plus'" class="fas text-sm"></i>
+                                                </button>
+                                                <div
+                                                    class="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                                    <div>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">Service
+                                                            Number</p>
+                                                        <p
+                                                            class="font-mono font-medium text-gray-900 dark:text-white text-sm">
+                                                            {{ circuit.servicenumber }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">Service Type
+                                                        </p>
+                                                        <p class="text-gray-900 dark:text-white text-sm">{{
+                                                            circuit.servicetype }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">Profile</p>
+                                                        <p class="text-gray-900 dark:text-white text-sm">{{
+                                                            circuit.serviceprofile }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">CAR</p>
+                                                        <p class="text-gray-900 dark:text-white text-sm">{{ circuit.car
+                                                            }} Mbps</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Circuit VPNs (Nested) -->
+                                        <div v-show="expandedCircuits.includes(circuit.uid)"
+                                            class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                                            <h4 class="font-medium text-gray-900 dark:text-white mb-3">
+                                                <i class="fas fa-lock text-orange-500 mr-2"></i>VPN Connections ({{
+                                                getCircuitVPNs(circuit.uid).length }})
+                                            </h4>
+
+                                            <div v-if="getCircuitVPNs(circuit.uid).length > 0" class="space-y-2">
+                                                <div v-for="vpn in getCircuitVPNs(circuit.uid)" :key="vpn.vpnbernieid"
+                                                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                                    <div>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">VPN Name</p>
+                                                        <p class="font-medium text-gray-900 dark:text-white text-sm">{{
+                                                            vpn.name }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">Owner</p>
+                                                        <p class="text-gray-900 dark:text-white text-sm">{{ vpn.vpnowner
+                                                            }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">CE IP</p>
+                                                        <p class="font-mono text-gray-900 dark:text-white text-sm">{{
+                                                            vpn.ceipaddress }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">CPE IP</p>
+                                                        <p class="font-mono text-gray-900 dark:text-white text-sm">{{
+                                                            vpn.cpeipaddress }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400">VLAN</p>
+                                                        <p class="text-gray-900 dark:text-white text-sm">{{ vpn.vlan }}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <p v-else class="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+                                                No VPN connections</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p v-if="siteCircuits.length === 0"
+                                    class="text-center py-8 text-gray-500 dark:text-gray-400">
+                                    No circuits found
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- ==================== CRUD MODAL ==================== -->
+        <div v-if="modal.show" class="fixed inset-0 z-50 overflow-y-auto">
+            <div class="flex items-center justify-center min-h-screen px-4 py-8">
+                <div class="fixed inset-0 bg-black bg-opacity-50" @click="closeModal"></div>
+
+                <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg mx-auto">
+                    <div
+                        class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            {{ modal.mode === 'create' ? 'Add' : 'Edit' }} {{ modal.typeLabel }}
+                        </h3>
+                        <button @click="closeModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="px-6 py-4 max-h-[60vh] overflow-y-auto">
+                        <!-- Hardware Form -->
+                        <div v-if="modal.type === 'hardware'" class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Hostname *</label>
+                                    <input v-model="formData.hostname" type="text"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">IP Address *</label>
+                                    <input v-model="formData.ip_address" type="text" placeholder="192.168.1.1"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Make</label>
+                                    <input v-model="formData.make" type="text" placeholder="Cisco"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Model</label>
+                                    <input v-model="formData.model" type="text" placeholder="C9300-48P"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Serial Number</label>
+                                    <input v-model="formData.serial_number" type="text"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+                                    <input v-model="formData.location" type="text" placeholder="MDF Room 101"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <input v-model="formData.isactive" type="checkbox" id="isactive"
+                                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <label for="isactive" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</label>
+                            </div>
+                        </div>
+
+                        <!-- Contact Form -->
+                        <div v-if="modal.type === 'contact'" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name *</label>
+                                <input v-model="formData.name" type="text"
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ministry</label>
+                                <select v-model="formData.ministryidlookup"
+                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                    <option v-for="m in ministries" :key="m.ministryid" :value="m.ministryid">{{ m.ministry }}</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email *</label>
+                                    <input v-model="formData.email" type="email"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                                    <input v-model="formData.phonenumber" type="text"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+                                <textarea v-model="formData.contactnotes" rows="2"
+                                          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Note Form -->
+                        <div v-if="modal.type === 'note'" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Note *</label>
+                                <textarea v-model="formData.note" rows="4"
+                                          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+                                <input v-model="formData.username" type="text"
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+
+                        <!-- Change Form -->
+                        <div v-if="modal.type === 'change'" class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ticket Number *</label>
+                                    <input v-model="formData.ticketnumber" type="text" placeholder="CHG0012345"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Assignee</label>
+                                    <input v-model="formData.assignee" type="text"
+                                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description *</label>
+                                <input v-model="formData.description" type="text"
+                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Details</label>
+                                <textarea v-model="formData.details" rows="3"
+                                          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Validation Error -->
+                        <p v-if="validationError" class="mt-4 text-sm text-red-600 dark:text-red-400">
+                            <i class="fas fa-exclamation-circle mr-1"></i>{{ validationError }}
+                        </p>
+                    </div>
+
+                    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                        <button @click="closeModal"
+                                class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            Cancel
+                        </button>
+                        <button @click="saveForm"
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-save mr-2"></i>Save
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== DELETE CONFIRMATION MODAL ==================== -->
+        <div v-if="deleteModal.show" class="fixed inset-0 z-50 overflow-y-auto">
+            <div class="flex items-center justify-center min-h-screen px-4">
+                <div class="fixed inset-0 bg-black bg-opacity-50" @click="deleteModal.show = false"></div>
+
+                <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md mx-auto">
+                    <div class="p-6 text-center">
+                        <div
+                            class="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-trash text-2xl text-red-600 dark:text-red-400"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Confirm Delete</h3>
+                        <p class="text-gray-600 dark:text-gray-400">
+                            Are you sure you want to delete this {{ deleteModal.typeLabel }}? This action cannot be
+                            undone.
+                        </p>
+                    </div>
+                    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-center gap-3">
+                        <button @click="deleteModal.show = false"
+                                class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                            Cancel
+                        </button>
+                        <button @click="executeDelete"
+                                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                            <i class="fas fa-trash mr-2"></i>Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TOAST NOTIFICATION ==================== -->
+        <transition name="slide">
+            <div v-if="toast.show" :class="toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'"
+                class="fixed bottom-4 right-4 px-6 py-3 rounded-lg text-white shadow-lg z-50 flex items-center">
+                <i :class="toast.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'" class="fas mr-2"></i>
+                {{ toast.message }}
+            </div>
+        </transition>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                // ============ STATE ============
+                const darkMode = ref(false);
+                const selectedSite = ref(null);
+                const searchQuery = ref('');
+                const filterCity = ref('');
+                const filterRegion = ref('');
+                const filterSize = ref('');
+                const hardwareSearch = ref('');
+                
+                const sections = ref({
+                    hardware: true,
+                    contacts: false,
+                    notes: false,
+                    networks: false,
+                    circuits: false
+                });
+                
+                const expandedHardware = ref([]);
+                const expandedCircuits = ref([]);
+                
+                const modal = ref({ show: false, type: '', typeLabel: '', mode: 'create', item: null, parentId: null });
+                const deleteModal = ref({ show: false, type: '', typeLabel: '', item: null });
+                const toast = ref({ show: false, message: '', type: 'success' });
+                const formData = ref({});
+                const validationError = ref('');
+
+                // ============ DUMMY DATA ============
+                const sites = ref([
+                    { siteid: 1, building_code: 'EDM-FT01', city: 'Edmonton', building: 'Federal Building', address: '9820 107 Street NW', postalcode: 'T5K 1E7', region: 'Capital', size: 'Large', wsp: 'TELUS', isegroup: 'GOA-PROD', dmvpn: 'Hub1', altwan: true },
+                    { siteid: 2, building_code: 'EDM-LT01', city: 'Edmonton', building: 'Legislature Building', address: '10800 97 Avenue NW', postalcode: 'T5K 2B6', region: 'Capital', size: 'Large', wsp: 'Shaw', isegroup: 'GOA-PROD', dmvpn: 'Hub1', altwan: true },
+                    { siteid: 3, building_code: 'CGY-CT01', city: 'Calgary', building: 'Calgary Courts Centre', address: '601 5 Street SW', postalcode: 'T2P 5P7', region: 'South', size: 'Large', wsp: 'TELUS', isegroup: 'GOA-PROD', dmvpn: 'Hub2', altwan: true },
+                    { siteid: 4, building_code: 'CGY-HC01', city: 'Calgary', building: 'Harry Chicken Health Centre', address: '1930 14 Avenue NE', postalcode: 'T2E 1G6', region: 'South', size: 'Medium', wsp: 'Shaw', isegroup: 'GOA-HEALTH', dmvpn: 'Hub2', altwan: false },
+                    { siteid: 5, building_code: 'RDR-MH01', city: 'Red Deer', building: 'Municipal Hall', address: '4914 48 Avenue', postalcode: 'T4N 3T4', region: 'Central', size: 'Medium', wsp: 'TELUS', isegroup: 'GOA-PROD', dmvpn: 'Hub1', altwan: true },
+                    { siteid: 6, building_code: 'LTH-GC01', city: 'Lethbridge', building: 'Government Centre', address: '200 5 Avenue S', postalcode: 'T1J 4L1', region: 'South', size: 'Medium', wsp: 'TELUS', isegroup: 'GOA-PROD', dmvpn: 'Hub2', altwan: false },
+                    { siteid: 7, building_code: 'MHT-RC01', city: 'Medicine Hat', building: 'Regional Centre', address: '346 3 Street SE', postalcode: 'T1A 0G7', region: 'South', size: 'Small', wsp: 'Shaw', isegroup: 'GOA-PROD', dmvpn: 'Hub2', altwan: false },
+                    { siteid: 8, building_code: 'GP-NR01', city: 'Grande Prairie', building: 'Northern Regional Office', address: '10320 99 Street', postalcode: 'T8V 6J4', region: 'North', size: 'Medium', wsp: 'TELUS', isegroup: 'GOA-PROD', dmvpn: 'Hub1', altwan: true },
+                    { siteid: 9, building_code: 'FMC-FS01', city: 'Fort McMurray', building: 'Field Services', address: '9915 Franklin Avenue', postalcode: 'T9H 2K4', region: 'North', size: 'Small', wsp: 'TELUS', isegroup: 'GOA-PROD', dmvpn: 'Hub1', altwan: false },
+                    { siteid: 10, building_code: 'BNF-AG01', city: 'Banff', building: 'Alberta Government Office', address: '102 Railway Avenue', postalcode: 'T1L 1A8', region: 'South', size: 'Small', wsp: 'Shaw', isegroup: 'GOA-PARKS', dmvpn: 'Hub2', altwan: false },
+                    { siteid: 11, building_code: 'LLD-SC01', city: 'Lloydminster', building: 'Service Centre', address: '5011 49 Street', postalcode: 'T9V 0K2', region: 'East', size: 'Small', wsp: 'SaskTel', isegroup: 'GOA-PROD', dmvpn: 'Hub1', altwan: false },
+                    { siteid: 12, building_code: 'CAM-MO01', city: 'Camrose', building: 'Municipal Office', address: '5204 50 Avenue', postalcode: 'T4V 0S8', region: 'Central', size: 'Small', wsp: 'TELUS', isegroup: 'GOA-PROD', dmvpn: 'Hub1', altwan: false },
+                    { siteid: 13, building_code: 'EDM-QE01', city: 'Edmonton', building: 'Queen Elizabeth II Building', address: '9945 108 Street', postalcode: 'T5K 2G6', region: 'Capital', size: 'Large', wsp: 'TELUS', isegroup: 'GOA-PROD', dmvpn: 'Hub1', altwan: true },
+                    { siteid: 14, building_code: 'CGY-OC01', city: 'Calgary', building: 'Oil & Gas Commission', address: '250 5 Street SW', postalcode: 'T2P 0R4', region: 'South', size: 'Medium', wsp: 'Shaw', isegroup: 'GOA-ENERGY', dmvpn: 'Hub2', altwan: true },
+                    { siteid: 15, building_code: 'PRC-WC01', city: 'Peace River', building: 'Wellness Centre', address: '9610 100 Street', postalcode: 'T8S 1M6', region: 'North', size: 'Small', wsp: 'TELUS', isegroup: 'GOA-HEALTH', dmvpn: 'Hub1', altwan: false }
+                ]);
+
+                const hardware = ref([
+                    { hardwareid: 1, siteid: 1, hostname: 'EDM-FT01-SW01', ip_address: '10.1.1.1', make: 'Cisco', model: 'C9300-48P', serial_number: 'FCW2145L0AB', location: 'MDF Room 101', isactive: true },
+                    { hardwareid: 2, siteid: 1, hostname: 'EDM-FT01-SW02', ip_address: '10.1.1.2', make: 'Cisco', model: 'C9300-48P', serial_number: 'FCW2145L0AC', location: 'MDF Room 101', isactive: true },
+                    { hardwareid: 3, siteid: 1, hostname: 'EDM-FT01-RTR01', ip_address: '10.1.1.254', make: 'Cisco', model: 'ISR4331', serial_number: 'FTX2134L0XY', location: 'MDF Room 101', isactive: true },
+                    { hardwareid: 4, siteid: 1, hostname: 'EDM-FT01-FW01', ip_address: '10.1.1.253', make: 'Palo Alto', model: 'PA-850', serial_number: 'PA001234567', location: 'MDF Room 101', isactive: true },
+                    { hardwareid: 5, siteid: 1, hostname: 'EDM-FT01-AP01', ip_address: '10.1.2.1', make: 'Cisco', model: 'C9120AXI', serial_number: 'FCW2189L0AP', location: 'Floor 1', isactive: true },
+                    { hardwareid: 6, siteid: 1, hostname: 'EDM-FT01-AP02', ip_address: '10.1.2.2', make: 'Cisco', model: 'C9120AXI', serial_number: 'FCW2189L0AQ', location: 'Floor 2', isactive: true },
+                    { hardwareid: 7, siteid: 1, hostname: 'EDM-FT01-SW03', ip_address: '10.1.1.3', make: 'Cisco', model: 'C9200-24P', serial_number: 'FCW2145L0AD', location: 'IDF 201', isactive: false },
+                    { hardwareid: 8, siteid: 2, hostname: 'EDM-LT01-SW01', ip_address: '10.2.1.1', make: 'Cisco', model: 'C9500-48Y4C', serial_number: 'FCW2345L0BA', location: 'Main DC', isactive: true },
+                    { hardwareid: 9, siteid: 2, hostname: 'EDM-LT01-SW02', ip_address: '10.2.1.2', make: 'Cisco', model: 'C9500-48Y4C', serial_number: 'FCW2345L0BB', location: 'Main DC', isactive: true },
+                    { hardwareid: 10, siteid: 2, hostname: 'EDM-LT01-RTR01', ip_address: '10.2.1.254', make: 'Cisco', model: 'ASR1001-X', serial_number: 'FTX2234L0BC', location: 'Main DC', isactive: true },
+                    { hardwareid: 11, siteid: 3, hostname: 'CGY-CT01-SW01', ip_address: '10.3.1.1', make: 'Cisco', model: 'C9300-48P', serial_number: 'FCW2445L0CA', location: 'Server Room A', isactive: true },
+                    { hardwareid: 12, siteid: 3, hostname: 'CGY-CT01-RTR01', ip_address: '10.3.1.254', make: 'Cisco', model: 'ISR4451', serial_number: 'FTX2334L0CC', location: 'Server Room A', isactive: true },
+                    { hardwareid: 13, siteid: 4, hostname: 'CGY-HC01-SW01', ip_address: '10.4.1.1', make: 'Cisco', model: 'C9200-48P', serial_number: 'FCW2545L0DA', location: 'IDF Room 1', isactive: true },
+                    { hardwareid: 14, siteid: 5, hostname: 'RDR-MH01-SW01', ip_address: '10.5.1.1', make: 'Cisco', model: 'C9200-24P', serial_number: 'FCW2645L0EA', location: 'Main Comm', isactive: true },
+                    { hardwareid: 15, siteid: 6, hostname: 'LTH-GC01-SW01', ip_address: '10.6.1.1', make: 'Cisco', model: 'C9200-48P', serial_number: 'FCW2745L0FA', location: 'Server Room', isactive: true }
+                ]);
+
+                const changes = ref([
+                    { changeid: 1, hardwareid: 1, ticketnumber: 'CHG0012345', description: 'Initial deployment and configuration', date: '2023-06-15T10:30:00', assignee: 'John Smith' },
+                    { changeid: 2, hardwareid: 1, ticketnumber: 'CHG0012456', description: 'Firmware upgrade to 17.3.4', date: '2023-09-20T02:00:00', assignee: 'Jane Doe' },
+                    { changeid: 3, hardwareid: 1, ticketnumber: 'CHG0012567', description: 'Added VLAN 50 for Guest WiFi', date: '2023-11-05T14:15:00', assignee: 'Mike Johnson' },
+                    { changeid: 4, hardwareid: 1, ticketnumber: 'CHG0012678', description: 'Port security implementation', date: '2024-01-10T09:00:00', assignee: 'Sarah Williams' },
+                    { changeid: 5, hardwareid: 2, ticketnumber: 'CHG0012346', description: 'Initial deployment', date: '2023-06-15T11:00:00', assignee: 'John Smith' },
+                    { changeid: 6, hardwareid: 2, ticketnumber: 'CHG0012457', description: 'Firmware upgrade to 17.3.4', date: '2023-09-20T02:30:00', assignee: 'Jane Doe' },
+                    { changeid: 7, hardwareid: 3, ticketnumber: 'CHG0012347', description: 'Router initial config', date: '2023-06-16T08:00:00', assignee: 'John Smith' },
+                    { changeid: 8, hardwareid: 3, ticketnumber: 'CHG0012890', description: 'Added secondary WAN link', date: '2024-03-01T10:00:00', assignee: 'Mike Johnson' },
+                    { changeid: 9, hardwareid: 8, ticketnumber: 'CHG0013100', description: 'Core switch deployment', date: '2023-07-01T10:00:00', assignee: 'Network Team' },
+                    { changeid: 10, hardwareid: 11, ticketnumber: 'CHG0013400', description: 'Switch deployment for Courts', date: '2023-08-01T09:00:00', assignee: 'Network Team' }
+                ]);
+
+                const ministries = ref([
+                    { ministryid: 1, ministry: 'Alberta Health Services', ministryshortform: 'AHS' },
+                    { ministryid: 2, ministry: 'Ministry of Justice', ministryshortform: 'JUS' },
+                    { ministryid: 3, ministry: 'Ministry of Transportation', ministryshortform: 'TRAN' },
+                    { ministryid: 4, ministry: 'Ministry of Energy', ministryshortform: 'ENRG' },
+                    { ministryid: 5, ministry: 'Ministry of Environment', ministryshortform: 'ENV' },
+                    { ministryid: 6, ministry: 'Ministry of Education', ministryshortform: 'EDU' },
+                    { ministryid: 7, ministry: 'Service Alberta', ministryshortform: 'SA' },
+                    { ministryid: 8, ministry: 'Alberta Parks', ministryshortform: 'PARKS' }
+                ]);
+
+                const ministry_contacts = ref([
+                    { mincontactid: 1, siteid: 1, ministryidlookup: 7, name: 'Robert Anderson', email: 'robert.anderson@gov.ab.ca', phonenumber: '780-555-1001', contactnotes: 'Primary IT contact' },
+                    { mincontactid: 2, siteid: 1, ministryidlookup: 7, name: 'Emily Chen', email: 'emily.chen@gov.ab.ca', phonenumber: '780-555-1002', contactnotes: 'Backup contact' },
+                    { mincontactid: 3, siteid: 1, ministryidlookup: 2, name: 'Michael Torres', email: 'michael.torres@gov.ab.ca', phonenumber: '780-555-1003', contactnotes: 'Justice floor liaison' },
+                    { mincontactid: 4, siteid: 2, ministryidlookup: 7, name: 'Sarah Miller', email: 'sarah.miller@gov.ab.ca', phonenumber: '780-555-2001', contactnotes: 'Building IT manager' },
+                    { mincontactid: 5, siteid: 3, ministryidlookup: 2, name: 'Jennifer Wright', email: 'jennifer.wright@gov.ab.ca', phonenumber: '403-555-3001', contactnotes: 'Courts IT coordinator' },
+                    { mincontactid: 6, siteid: 4, ministryidlookup: 1, name: 'Lisa Thompson', email: 'lisa.thompson@ahs.ca', phonenumber: '403-555-4001', contactnotes: 'Health IT manager' }
+                ]);
+
+                const sitenotes = ref([
+                    { id: 1, siteid: 1, note: 'Main fiber entrance on north side of building. MPLS circuit terminates in MDF 101.', dateadded: '2023-06-20', username: 'jsmith' },
+                    { id: 2, siteid: 1, note: 'Building security requires 24hr notice for after-hours access.', dateadded: '2023-07-15', username: 'mwilson' },
+                    { id: 3, siteid: 1, note: 'UPS replacement scheduled for Q2 2024.', dateadded: '2024-01-10', username: 'jdoe' },
+                    { id: 4, siteid: 2, note: 'Historical building - drilling requires heritage approval.', dateadded: '2022-12-01', username: 'admin' },
+                    { id: 5, siteid: 3, note: 'Courts require 99.99% uptime SLA.', dateadded: '2023-08-20', username: 'noc' },
+                    { id: 6, siteid: 4, note: 'Health data requires HIPAA-equivalent security measures.', dateadded: '2023-09-18', username: 'security' }
+                ]);
+
+                const networks = ref([
+                    { netid: 1, siteid: 1, netoc1: 10, netoc2: 1, netoc3: 1, netoc4: 0, mask_short: '24', type: 'Management', vlan_num: 10, comment: 'Network management VLAN', ivms_scan: true },
+                    { netid: 2, siteid: 1, netoc1: 10, netoc2: 1, netoc3: 10, netoc4: 0, mask_short: '24', type: 'Data', vlan_num: 20, comment: 'User data VLAN', ivms_scan: true },
+                    { netid: 3, siteid: 1, netoc1: 10, netoc2: 1, netoc3: 20, netoc4: 0, mask_short: '24', type: 'Voice', vlan_num: 30, comment: 'VoIP VLAN', ivms_scan: false },
+                    { netid: 4, siteid: 1, netoc1: 10, netoc2: 1, netoc3: 30, netoc4: 0, mask_short: '24', type: 'Guest', vlan_num: 50, comment: 'Guest WiFi', ivms_scan: false },
+                    { netid: 5, siteid: 2, netoc1: 10, netoc2: 2, netoc3: 1, netoc4: 0, mask_short: '24', type: 'Management', vlan_num: 10, comment: 'Management VLAN', ivms_scan: true },
+                    { netid: 6, siteid: 2, netoc1: 10, netoc2: 2, netoc3: 10, netoc4: 0, mask_short: '23', type: 'Data', vlan_num: 20, comment: 'User data', ivms_scan: true },
+                    { netid: 7, siteid: 3, netoc1: 10, netoc2: 3, netoc3: 1, netoc4: 0, mask_short: '24', type: 'Management', vlan_num: 10, comment: 'Network mgmt', ivms_scan: true },
+                    { netid: 8, siteid: 3, netoc1: 10, netoc2: 3, netoc3: 100, netoc4: 0, mask_short: '24', type: 'Secure', vlan_num: 100, comment: 'Secure evidence network', ivms_scan: false }
+                ]);
+
+                const supernetbernie = ref([
+                    { uid: 1, servicenumber: 'SN-EDM-001', building_code: 'EDM-FT01', serviceprofile: 'Premium', servicetype: 'MPLS', car: 100 },
+                    { uid: 2, servicenumber: 'SN-EDM-002', building_code: 'EDM-FT01', serviceprofile: 'Standard', servicetype: 'Internet', car: 50 },
+                    { uid: 3, servicenumber: 'SN-EDM-003', building_code: 'EDM-LT01', serviceprofile: 'Premium Plus', servicetype: 'MPLS', car: 200 },
+                    { uid: 4, servicenumber: 'SN-EDM-004', building_code: 'EDM-LT01', serviceprofile: 'Premium', servicetype: 'Internet', car: 100 },
+                    { uid: 5, servicenumber: 'SN-CGY-001', building_code: 'CGY-CT01', serviceprofile: 'Premium', servicetype: 'MPLS', car: 150 },
+                    { uid: 6, servicenumber: 'SN-CGY-002', building_code: 'CGY-CT01', serviceprofile: 'Standard', servicetype: 'Internet', car: 75 },
+                    { uid: 7, servicenumber: 'SN-CGY-003', building_code: 'CGY-HC01', serviceprofile: 'Standard', servicetype: 'MPLS', car: 50 },
+                    { uid: 8, servicenumber: 'SN-RDR-001', building_code: 'RDR-MH01', serviceprofile: 'Standard', servicetype: 'MPLS', car: 50 }
+                ]);
+
+                const supernetvpnbernie = ref([
+                    { vpnbernieid: 1, uid: 1, name: 'GOA-CORE', vpnowner: 'Service Alberta', ceipaddress: '172.16.1.1', cpeipaddress: '172.16.1.2', vlan: 100 },
+                    { vpnbernieid: 2, uid: 1, name: 'GOA-VOICE', vpnowner: 'Service Alberta', ceipaddress: '172.16.2.1', cpeipaddress: '172.16.2.2', vlan: 200 },
+                    { vpnbernieid: 3, uid: 3, name: 'GOA-CORE', vpnowner: 'Service Alberta', ceipaddress: '172.16.3.1', cpeipaddress: '172.16.3.2', vlan: 100 },
+                    { vpnbernieid: 4, uid: 3, name: 'GOA-VOICE', vpnowner: 'Service Alberta', ceipaddress: '172.16.4.1', cpeipaddress: '172.16.4.2', vlan: 200 },
+                    { vpnbernieid: 5, uid: 3, name: 'GOA-VIDEO', vpnowner: 'Service Alberta', ceipaddress: '172.16.5.1', cpeipaddress: '172.16.5.2', vlan: 300 },
+                    { vpnbernieid: 6, uid: 5, name: 'GOA-CORE', vpnowner: 'Justice', ceipaddress: '172.16.6.1', cpeipaddress: '172.16.6.2', vlan: 100 },
+                    { vpnbernieid: 7, uid: 5, name: 'SECURE-EVIDENCE', vpnowner: 'Justice', ceipaddress: '172.16.7.1', cpeipaddress: '172.16.7.2', vlan: 500 },
+                    { vpnbernieid: 8, uid: 7, name: 'GOA-CORE', vpnowner: 'Alberta Health', ceipaddress: '172.16.8.1', cpeipaddress: '172.16.8.2', vlan: 100 },
+                    { vpnbernieid: 9, uid: 8, name: 'GOA-CORE', vpnowner: 'Service Alberta', ceipaddress: '172.16.10.1', cpeipaddress: '172.16.10.2', vlan: 100 }
+                ]);
+
+                // ============ COMPUTED ============
+                const uniqueCities = computed(() => [...new Set(sites.value.map(s => s.city))].sort());
+                const uniqueRegions = computed(() => [...new Set(sites.value.map(s => s.region))].sort());
+                const uniqueSizes = computed(() => [...new Set(sites.value.map(s => s.size))].sort());
+
+                const filteredSites = computed(() => {
+                    return sites.value.filter(site => {
+                        const matchesSearch = !searchQuery.value || 
+                            Object.values(site).some(val => String(val).toLowerCase().includes(searchQuery.value.toLowerCase()));
+                        const matchesCity = !filterCity.value || site.city === filterCity.value;
+                        const matchesRegion = !filterRegion.value || site.region === filterRegion.value;
+                        const matchesSize = !filterSize.value || site.size === filterSize.value;
+                        return matchesSearch && matchesCity && matchesRegion && matchesSize;
+                    });
+                });
+
+                const siteHardware = computed(() => selectedSite.value ? hardware.value.filter(h => h.siteid === selectedSite.value.siteid) : []);
+                const filteredHardware = computed(() => {
+                    if (!hardwareSearch.value) return siteHardware.value;
+                    return siteHardware.value.filter(h => Object.values(h).some(val => String(val).toLowerCase().includes(hardwareSearch.value.toLowerCase())));
+                });
+                const siteContacts = computed(() => selectedSite.value ? ministry_contacts.value.filter(c => c.siteid === selectedSite.value.siteid) : []);
+                const siteNotes = computed(() => selectedSite.value ? sitenotes.value.filter(n => n.siteid === selectedSite.value.siteid) : []);
+                const siteNetworks = computed(() => selectedSite.value ? networks.value.filter(n => n.siteid === selectedSite.value.siteid) : []);
+                const siteCircuits = computed(() => selectedSite.value ? supernetbernie.value.filter(c => c.building_code === selectedSite.value.building_code) : []);
+
+                // ============ METHODS ============
+                const toggleDarkMode = () => {
+                    darkMode.value = !darkMode.value;
+                    localStorage.setItem('darkMode', darkMode.value);
+                    document.documentElement.classList.toggle('dark', darkMode.value);
+                };
+
+                const selectSite = (site) => {
+                    selectedSite.value = site;
+                    sections.value.hardware = true;
+                };
+
+                const clearFilters = () => {
+                    searchQuery.value = '';
+                    filterCity.value = '';
+                    filterRegion.value = '';
+                    filterSize.value = '';
+                };
+
+                const toggleSection = (section) => { sections.value[section] = !sections.value[section]; };
+                const toggleHardware = (id) => {
+                    const idx = expandedHardware.value.indexOf(id);
+                    idx > -1 ? expandedHardware.value.splice(idx, 1) : expandedHardware.value.push(id);
+                };
+                const toggleCircuit = (id) => {
+                    const idx = expandedCircuits.value.indexOf(id);
+                    idx > -1 ? expandedCircuits.value.splice(idx, 1) : expandedCircuits.value.push(id);
+                };
+
+                const getHardwareCount = (siteid) => hardware.value.filter(h => h.siteid === siteid).length;
+                const getCircuitCount = (building_code) => supernetbernie.value.filter(c => c.building_code === building_code).length;
+                const getHardwareChanges = (hardwareid) => changes.value.filter(c => c.hardwareid === hardwareid).sort((a, b) => new Date(b.date) - new Date(a.date));
+                const getCircuitVPNs = (uid) => supernetvpnbernie.value.filter(v => v.uid === uid);
+                const getMinistryName = (id) => { const m = ministries.value.find(m => m.ministryid === id); return m ? m.ministryshortform : 'N/A'; };
+
+                const getSizeClass = (size) => ({
+                    'Large': 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-400',
+                    'Medium': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-400',
+                    'Small': 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-400'
+                }[size] || 'bg-gray-100 text-gray-700');
+
+                const formatDate = (dateString) => {
+                    if (!dateString) return 'N/A';
+                    return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                };
+
+                const openModal = (type, mode, item = null, parentId = null) => {
+                    const labels = { hardware: 'Hardware', contact: 'Contact', note: 'Note', change: 'Change' };
+                    modal.value = { show: true, type, typeLabel: labels[type], mode, item, parentId };
+                    validationError.value = '';
+                    
+                    if (mode === 'edit' && item) {
+                        formData.value = { ...item };
+                    } else {
+                        formData.value = type === 'hardware' ? { isactive: true } : {};
+                    }
+                };
+
+                const closeModal = () => { modal.value.show = false; formData.value = {}; validationError.value = ''; };
+
+                const showToast = (message, type = 'success') => {
+                    toast.value = { show: true, message, type };
+                    setTimeout(() => { toast.value.show = false; }, 3000);
+                };
+
+                const saveForm = () => {
+                    validationError.value = '';
+                    
+                    // Validation
+                    if (modal.value.type === 'hardware' && (!formData.value.hostname || !formData.value.ip_address)) {
+                        validationError.value = 'Hostname and IP Address are required'; return;
+                    }
+                    if (modal.value.type === 'contact' && (!formData.value.name || !formData.value.email)) {
+                        validationError.value = 'Name and Email are required'; return;
+                    }
+                    if (modal.value.type === 'note' && !formData.value.note) {
+                        validationError.value = 'Note content is required'; return;
+                    }
+                    if (modal.value.type === 'change' && (!formData.value.ticketnumber || !formData.value.description)) {
+                        validationError.value = 'Ticket Number and Description are required'; return;
+                    }
+
+                    if (modal.value.mode === 'create') {
+                        const newItem = { ...formData.value };
+                        if (modal.value.type === 'hardware') {
+                            newItem.hardwareid = Math.max(...hardware.value.map(h => h.hardwareid)) + 1;
+                            newItem.siteid = selectedSite.value.siteid;
+                            hardware.value.push(newItem);
+                        } else if (modal.value.type === 'contact') {
+                            newItem.mincontactid = Math.max(...ministry_contacts.value.map(c => c.mincontactid)) + 1;
+                            newItem.siteid = selectedSite.value.siteid;
+                            ministry_contacts.value.push(newItem);
+                        } else if (modal.value.type === 'note') {
+                            newItem.id = Math.max(...sitenotes.value.map(n => n.id)) + 1;
+                            newItem.siteid = selectedSite.value.siteid;
+                            newItem.dateadded = new Date().toISOString().split('T')[0];
+                            newItem.username = newItem.username || 'current_user';
+                            sitenotes.value.push(newItem);
+                        } else if (modal.value.type === 'change') {
+                            newItem.changeid = Math.max(...changes.value.map(c => c.changeid)) + 1;
+                            newItem.hardwareid = modal.value.parentId;
+                            newItem.date = new Date().toISOString();
+                            newItem.assignee = newItem.assignee || 'current_user';
+                            changes.value.push(newItem);
+                        }
+                        showToast(`${modal.value.typeLabel} created successfully`);
+                    } else {
+                        // Edit mode
+                        let arr, idKey;
+                        if (modal.value.type === 'hardware') { arr = hardware; idKey = 'hardwareid'; }
+                        else if (modal.value.type === 'contact') { arr = ministry_contacts; idKey = 'mincontactid'; }
+                        else if (modal.value.type === 'note') { arr = sitenotes; idKey = 'id'; }
+                        else if (modal.value.type === 'change') { arr = changes; idKey = 'changeid'; }
+                        
+                        const idx = arr.value.findIndex(item => item[idKey] === modal.value.item[idKey]);
+                        if (idx > -1) { arr.value[idx] = { ...arr.value[idx], ...formData.value }; }
+                        showToast(`${modal.value.typeLabel} updated successfully`);
+                    }
+                    closeModal();
+                };
+
+                const confirmDelete = (type, item) => {
+                    const labels = { hardware: 'Hardware', contact: 'Contact', note: 'Note', change: 'Change' };
+                    deleteModal.value = { show: true, type, typeLabel: labels[type], item };
+                };
+
+                const executeDelete = () => {
+                    let arr, idKey;
+                    if (deleteModal.value.type === 'hardware') { arr = hardware; idKey = 'hardwareid'; }
+                    else if (deleteModal.value.type === 'contact') { arr = ministry_contacts; idKey = 'mincontactid'; }
+                    else if (deleteModal.value.type === 'note') { arr = sitenotes; idKey = 'id'; }
+                    else if (deleteModal.value.type === 'change') { arr = changes; idKey = 'changeid'; }
+                    
+                    const idx = arr.value.findIndex(item => item[idKey] === deleteModal.value.item[idKey]);
+                    if (idx > -1) { arr.value.splice(idx, 1); }
+                    
+                    showToast(`${deleteModal.value.typeLabel} deleted successfully`);
+                    deleteModal.value.show = false;
+                };
+
+                // ============ LIFECYCLE ============
+                onMounted(() => {
+                    const savedDarkMode = localStorage.getItem('darkMode');
+                    if (savedDarkMode === 'true') {
+                        darkMode.value = true;
+                        document.documentElement.classList.add('dark');
+                    }
+                });
+
+                return {
+                    darkMode, selectedSite, searchQuery, filterCity, filterRegion, filterSize, hardwareSearch,
+                    sections, expandedHardware, expandedCircuits,
+                    modal, deleteModal, toast, formData, validationError,
+                    sites, hardware, changes, ministries, ministry_contacts, sitenotes, networks, supernetbernie, supernetvpnbernie,
+                    uniqueCities, uniqueRegions, uniqueSizes, filteredSites,
+                    siteHardware, filteredHardware, siteContacts, siteNotes, siteNetworks, siteCircuits,
+                    toggleDarkMode, selectSite, clearFilters, toggleSection, toggleHardware, toggleCircuit,
+                    getHardwareCount, getCircuitCount, getHardwareChanges, getCircuitVPNs, getMinistryName,
+                    getSizeClass, formatDate,
+                    openModal, closeModal, saveForm, confirmDelete, executeDelete
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
