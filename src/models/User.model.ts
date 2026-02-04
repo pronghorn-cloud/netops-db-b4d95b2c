@@ -166,4 +166,3 @@ class UserModel {
 
 export default new UserModel();
 
-export default new UserModel();
