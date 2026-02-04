@@ -12,8 +12,6 @@ const generateToken = (userId: string): string => {
   });
 };
 
-};
-
 // @desc    Register new user
 // @route   POST /api/auth/register
 // @access  Public
@@ -22,6 +20,7 @@ export const register = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+
   try {
     const { username, email, password, role } = req.body;
 
