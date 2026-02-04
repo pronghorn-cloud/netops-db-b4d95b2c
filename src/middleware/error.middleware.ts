@@ -77,8 +77,3 @@ export const errorHandler = (
 
   res.status(error.statusCode || 500).json(response);
 };
-
-  }
-
-  res.status(error.statusCode || 500).json(response);
-};
