@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import mongoose from 'mongoose';
 
 interface ErrorResponse {
   success: boolean;
@@ -20,27 +19,34 @@ export const errorHandler = (
   // Log error for debugging
   console.error('Error:', err);
 
-  // Mongoose bad ObjectId
-  if (err.name === 'CastError') {
-    const message = 'Resource not found';
-    error = { message, statusCode: 404 };
-  }
-
-  // Mongoose duplicate key
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
-    const message = `${field.charAt(0).toUpperCase() + field.slice(1)} already exists`;
+  // PostgreSQL invalid UUID format
+  if (err.message && err.message.includes('invalid input syntax for type uuid')) {
+    const message = 'Invalid ID format';
     error = { message, statusCode: 400 };
   }
 
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    const errors = Object.values(err.errors).map((e: any) => ({
-      field: e.path,
-      message: e.message
-    }));
-    const message = 'Validation failed';
-    error = { message, statusCode: 400, errors };
+  // PostgreSQL duplicate key (unique constraint violation)
+  if (err.code === '23505') {
+    const message = 'Resource already exists (duplicate key)';
+    error = { message, statusCode: 400 };
+  }
+
+  // PostgreSQL foreign key constraint violation
+  if (err.code === '23503') {
+    const message = 'Referenced resource not found (foreign key constraint)';
+    error = { message, statusCode: 400 };
+  }
+
+  // PostgreSQL not null constraint violation
+  if (err.code === '23502') {
+    const message = 'Required field is missing (not null constraint)';
+    error = { message, statusCode: 400 };
+  }
+
+  // PostgreSQL check constraint violation
+  if (err.code === '23514') {
+    const message = 'Validation failed (check constraint)';
+    error = { message, statusCode: 400 };
   }
 
   // JWT errors
@@ -67,6 +73,11 @@ export const errorHandler = (
   // Include stack trace in development
   if (process.env.NODE_ENV === 'development') {
     response.stack = err.stack;
+  }
+
+  res.status(error.statusCode || 500).json(response);
+};
+
   }
 
   res.status(error.statusCode || 500).json(response);
