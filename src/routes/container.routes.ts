@@ -27,12 +27,9 @@ const containerValidation = [
     .isIn(['rack', 'cabinet', 'closet', 'room', 'other'])
     .withMessage('Type must be rack, cabinet, closet, room, or other'),
   body('siteId')
-  body('siteId')
     .notEmpty()
     .withMessage('Site ID is required')
     .isUUID()
-    .withMessage('Invalid Site ID format'),
-
     .withMessage('Invalid Site ID format'),
   body('location')
     .optional()
@@ -48,6 +45,7 @@ const containerValidation = [
     .isIn(['active', 'inactive'])
     .withMessage('Status must be either active or inactive')
 ];
+
 
 const updateContainerValidation = [
   body('name')
@@ -60,13 +58,11 @@ const updateContainerValidation = [
   body('type')
     .optional()
     .trim()
+    .isIn(['rack', 'cabinet', 'closet', 'room', 'other'])
+    .withMessage('Type must be rack, cabinet, closet, room, or other'),
   body('siteId')
     .optional()
     .isUUID()
-    .withMessage('Invalid Site ID format'),
-
-    .optional()
-    .isMongoId()
     .withMessage('Invalid Site ID format'),
   body('location')
     .optional()
@@ -82,6 +78,7 @@ const updateContainerValidation = [
     .isIn(['active', 'inactive'])
     .withMessage('Status must be either active or inactive')
 ];
+
 
 // Routes
 router.get('/', protect, getContainers);

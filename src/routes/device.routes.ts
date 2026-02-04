@@ -52,12 +52,9 @@ const deviceValidation = [
     .matches(/^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$/i)
     .withMessage('Please provide a valid MAC address (format: XX:XX:XX:XX:XX:XX)'),
   body('containerId')
-  body('containerId')
     .notEmpty()
     .withMessage('Container ID is required')
     .isUUID()
-    .withMessage('Invalid Container ID format'),
-
     .withMessage('Invalid Container ID format'),
   body('status')
     .optional()
@@ -69,6 +66,7 @@ const deviceValidation = [
     .isLength({ max: 1000 })
     .withMessage('Notes cannot exceed 1000 characters')
 ];
+
 
 const updateDeviceValidation = [
   body('name')
@@ -105,14 +103,12 @@ const updateDeviceValidation = [
     .withMessage('Please provide a valid IP address'),
   body('macAddress')
     .optional()
+    .trim()
+    .matches(/^([0-9A-F]{2}[:-]){5}([0-9A-F]{2})$/i)
+    .withMessage('Please provide a valid MAC address (format: XX:XX:XX:XX:XX:XX)'),
   body('containerId')
     .optional()
     .isUUID()
-    .withMessage('Invalid Container ID format'),
-
-  body('containerId')
-    .optional()
-    .isMongoId()
     .withMessage('Invalid Container ID format'),
   body('status')
     .optional()
@@ -124,6 +120,7 @@ const updateDeviceValidation = [
     .isLength({ max: 1000 })
     .withMessage('Notes cannot exceed 1000 characters')
 ];
+
 
 // Routes
 router.get('/', protect, getDevices);
